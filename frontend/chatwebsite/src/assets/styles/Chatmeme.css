@@ -1,0 +1,27 @@
+.meme-card-container {
+  width: 100%;
+ height: auto;
+  padding-top: 25px;
+  display: flex;
+    flex-direction: column;
+  justify-content: center;
+   border: 1px solid red;
+  align-items: center;
+  background-color: black;
+}
+.meme-card-container img{
+      gap: 30px;
+      overflow-y: auto;
+    width:100%;
+  height: auto; 
+    border: 5px solid pink;
+     object-fit: contain;
+    border-radius: 6px;
+
+}
+.meme-action-bar{
+    display:flex;
+    border: 1px solid greenyellow;
+  align-items: flex-start;
+  gap: 10px;
+}
