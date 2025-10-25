@@ -1,6 +1,8 @@
-const axios = require("axios");
-const API_KEY = process.env.YOUR_OPENROUTER_API_KEY;
+import axios from 'axios';
+import dotenv from 'dotenv';
+dotenv.config();
 
+const API_KEY = process.env.YOUR_OPENROUTER_API_KEY;
 
 let chatHistory = [
   {
@@ -29,13 +31,14 @@ async function chatWithDeepSeek(userMessage) {
       }
     );
 
-    const botReply =  response.data.choices[0].message.content;
+    const botReply = response.data.choices[0].message.content;
     chatHistory.push({ role: "assistant", content: botReply });
-return botReply;
+    return botReply;
   } catch (err) {
     console.error("DeepSeek error:", err?.response?.data || err.message);
     return "Sorry, something went wrong.";
   }
 }
 
-module.exports = chatWithDeepSeek;
+// ✅ ES Module default export
+export default chatWithDeepSeek;

@@ -1,0 +1,88 @@
+.comment-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(8px);
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.comment-modal-container {
+  display: flex;
+  width: 80%;
+  max-width: 900px;
+  height: 70vh;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.comment-modal-left {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #000; /* optional for better contrast */
+}
+
+.comment-modal-left img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.comment-modal-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background: #fff;
+  color: #000;
+}
+
+.comment-modal-list {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.comment-modal-item {
+  margin-bottom: 8px;
+  color: #000;
+}
+
+.comment-modal-input {
+  display: flex;
+  gap: 8px;
+}
+
+.comment-modal-input input {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  color: #000;
+}
+
+.comment-modal-input button {
+  padding: 8px 12px;
+  border: none;
+  background: #3897f0;
+  color: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.comment-modal-close {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: none;
+  background: #eee;
+  cursor: pointer;
+  border-radius: 6px;
+}

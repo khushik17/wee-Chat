@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import MemeCard from '../components/Chatmeme';
+import socket from "../../socket";
+
 
 export default function SharedMemes() {
   const [sharedMemes, setSharedMemes] = useState([]);
@@ -9,17 +11,24 @@ export default function SharedMemes() {
     const fetchShared = async () => {
       try {
         const res = await axios.get('http://localhost:3000/getshared', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
-        setSharedMemes(res.data.sharedMemes);
+        setSharedMemes(res.data.shared);
       } catch (err) {
         console.error('Error fetching shared memes:', err);
       }
     };
 
     fetchShared();
+
+    // Listen for incoming memes in real-time
+    socket.on("receive_meme", (memeMessage) => {
+      setSharedMemes(prev => [memeMessage.meme, ...prev]);
+    });
+
+    return () => {
+      socket.off("receive_meme");
+    };
   }, []);
 
   return (
@@ -28,10 +37,9 @@ export default function SharedMemes() {
       {sharedMemes.length === 0 ? (
         <p className="text-center text-white">No memes shared with you yet.</p>
       ) : (
-        sharedMemes.map((share) => (
-          <MemeCard key={share._id} meme={share.meme} />
-        ))
+        sharedMemes.map((meme, index) => <MemeCard key={index} meme={meme} />)
       )}
     </div>
   );
 }
+;

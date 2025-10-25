@@ -1,40 +1,49 @@
-import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './assets/pages/landing';
-import Signup from './assets/pages/signup';
 import Chat from './assets/pages/Chat';
 import MemeFeed from './assets/pages/MemeFeed';
-import Profile from './assets/pages/Profile';
-import Otp from './assets/pages/Otp';
-import LoginPage from './assets/pages/login.jsx';
-import Finalsignup from './assets/pages/Finalsignup';
+import Profilepage from './assets/pages/Profile';
 import Chatbot from './assets/pages/Chatbot';
 import Chatuser from './assets/pages/Chatuser';
+import SignUpPage from './assets/pages/signup';
+import LoginPage from './assets/pages/login';
+import { useUser } from '@clerk/clerk-react';
+import './App.css';
 
-import './App.css'
+// Protected Route Component
+function ProtectedRoute({ children }) {
+  const { isSignedIn, isLoaded } = useUser();
+  
+  if (!isLoaded) return <div>Loading...</div>;
+  if (!isSignedIn) return <Navigate to="/sign-in" replace />;
+  
+  return children;
+}
 
 function App() {
-  
-
   return (
     <Router>
       <Routes>
-        <Route path='/' element={<Landing />}/>
-        <Route path='/login' element={<LoginPage />}/>
-        <Route path='/signup-details' element={<Finalsignup/>}/>
-        <Route path='/chat/bot' element={<Chatbot />}/>
-        <Route path='/chat/users' element={<Chatuser />}/>
-        <Route path='/landing' element={<Landing />}/>
-        <Route path='/signup' element={<Signup/>}/>
-        <Route path='/otp' element={<Otp />}/>
-        <Route path='/profile' element={<Profile />}/>
-        <Route path='/memeFeed' element={<MemeFeed />}/>
-        <Route path='/chat' element={<Chat />}/>
-      
+        {/* Public Routes */}
+        <Route path='/' element={<Landing />} />
+        <Route path='/landing' element={<Landing />} />
+        
+        {/* Clerk Auth Routes (wildcard fix) */}
+        <Route path="/sign-in/*" element={<LoginPage />} />
+        <Route path="/sign-up/*" element={<SignUpPage />} />
+        
+        {/* Protected Routes */}
+        <Route path='/chat/bot' element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
+        <Route path='/chat/users' element={<ProtectedRoute><Chatuser /></ProtectedRoute>} />
+        <Route path='/profile' element={<ProtectedRoute><Profilepage /></ProtectedRoute>} />
+        <Route path='/memeFeed' element={<ProtectedRoute><MemeFeed /></ProtectedRoute>} />
+        <Route path='/chat' element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+
+        {/* Optional 404 fallback */}
+        <Route path="*" element={<div>404 Not Found</div>} />
       </Routes>
     </Router>
-    
-  )
+  );
 }
 
-export default App
+export default App;

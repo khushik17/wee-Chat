@@ -1,27 +1,120 @@
+/* Meme Card Outer Container with Gradient Background */
 .meme-card-container {
   width: 100%;
- height: auto;
-  padding-top: 25px;
+  height: auto;
   display: flex;
-    flex-direction: column;
-  justify-content: center;
-   border: 1px solid red;
-  align-items: center;
-  background-color: black;
+  flex-direction: column;
+  background: linear-gradient(135deg, #f9e2ff, #ffe9d6); /* full outer gradient */
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
-.meme-card-container img{
-      gap: 30px;
-      overflow-y: auto;
-    width:100%;
-  height: auto; 
-    border: 5px solid pink;
-     object-fit: contain;
-    border-radius: 6px;
 
+/* Hover lift effect */
+.meme-card-container:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.18);
 }
-.meme-action-bar{
-    display:flex;
-    border: 1px solid greenyellow;
-  align-items: flex-start;
-  gap: 10px;
+
+/* Meme Image stays same */
+.meme-card-container img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 14px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+/* Hover zoom image */
+.meme-card-container:hover img {
+  transform: scale(1.02);
+}
+
+/* Action bar – remove white bg, transparent so gradient shows through */
+.meme-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.3); /* subtle divider over gradient */
+  background: transparent; /* gradient shows through */
+}
+
+.meme-action-bar button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  color: #555;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.meme-action-bar button:hover {
+  color: #ff4d6d;
+  transform: scale(1.25);
+}
+
+/* Title & Likes – make background transparent to show gradient */
+.meme-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin: 10px 16px 0;
+  color: #2c2c2c;
+  background: transparent;
+}
+
+.meme-likes {
+  font-size: 14px;
+  margin: 4px 16px 10px;
+  color: #555;
+  background: transparent;
+}
+
+/* Comments – transparent background so gradient shows */
+.meme-top-comments {
+  padding: 0 16px 14px;
+  font-size: 13px;
+  color: #444;
+  background: transparent;
+}
+
+.meme-top-comments p {
+  margin: 5px 0;
+  border-left: 3px solid rgba(255, 224, 236, 0.7);
+  padding-left: 8px;
+  color: #555;
+}
+
+/* Heart Animation */
+.meme-image-wrapper {
+  position: relative;
+}
+
+.big-heart {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 100px;
+  color: rgba(255, 77, 109, 0.8);
+  transform: translate(-50%, -50%) scale(0);
+  pointer-events: none;
+  opacity: 0;
+  animation: popHeart 0.6s ease forwards;
+}
+
+@keyframes popHeart {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
 }

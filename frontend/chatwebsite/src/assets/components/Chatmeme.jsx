@@ -1,206 +1,131 @@
-import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { FaRegComment, FaShare } from "react-icons/fa";
-import axios from "axios";
+import { useUser } from "@clerk/clerk-react";
 import "../styles/Chatmeme.css";
 
-export default function MemeCard({ meme }) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [likes, setLikes] = useState(
-    Array.isArray(meme.like) ? meme.like.length : 0
-  );
-  const currentUserId = localStorage.getItem("userId");
-  const [liked, setLiked] = useState(
-    Array.isArray(meme.like)
-      ? meme.like.some((uid) => uid.toString() === currentUserId)
-      : false
-  );
-  const [commentOpen, setCommentOpen] = useState(false);
-  const [comment, setComment] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [comments, setComments] = useState(
-    Array.isArray(meme?.comments) ? meme.comments : []
-  );
+export default function MemeCard({ meme, onShare, onComment, onLikeToggle }) {
+  const { user } = useUser();
+  const [showHeart, setShowHeart] = useState(false);
 
-  // 🔎 Fetch search results
-  useEffect(() => {
-    const fetchSearchResults = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get("http://localhost:3000/chat-search", {
-          params: { q: searchQuery },
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  // ✅ Use meme prop directly
+  const likes = meme.like?.length || 0;
+  const liked = user && Array.isArray(meme.like) 
+    ? meme.like.some((uid) => uid?.toString() === user.id)
+    : false;
 
-        setSearchResults(response.data.users || []);
-      } catch (err) {
-        console.error("Failed to fetch results", err);
-      }
-    };
+  // ❤ Handle double-click with animation
+  const handleDoubleClick = async (e) => {
+    e.preventDefault();
+    console.log("🔥 Double click detected!");
+  console.log("User:", user);
+  console.log("Liked:", liked);
 
-    if (searchQuery.trim() !== "") {
-      fetchSearchResults();
-    } else {
-      setSearchResults([]);
+    if (!user) {
+      alert("Please sign in to like memes!");
+      return;
     }
-  }, [searchQuery]);
 
-  // ❤️ Like handler
-  const handleLike = async () => {
-    try {
-      const endpoint = liked ? "/unlike" : "/like";
-      const res = await axios.post(
-        endpoint,
-        { id: meme._id },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      setLikes(res.data.likes);
-      setLiked(res.data.liked);
-    } catch (err) {
-      console.error("Error liking/unliking meme", err);
+    // Show animation only when liking (not unliking)
+    if (!liked) {
+      console.log("❤️ Setting showHeart to TRUE");
+      setShowHeart(true);
+      setTimeout(() => setShowHeart(false), 800);
+    }
+
+    // Call parent's like toggle
+    if (onLikeToggle) {
+      await onLikeToggle(meme._id);
     }
   };
 
-  // 📤 Toggle share form
-  const handleEditToggle = () => {
-    setShowForm(!showForm);
-  };
-
-
-  const handleSend = async (receiverId) => {
-    console.log("Sending meme:", { memeid: meme._id, receiverId });
-    try {
-      await axios.post(
-        "http://localhost:3000/send",
-        { memeid: meme._id, receiverId },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      alert("Meme sent successfully!");
-      setShowForm(false); // close after sending
-      setSearchQuery(""); // reset search
-      setSearchResults([]);
-    } catch (error) {
-      console.error("Sending meme failed", error);
-      alert("Sending failed");
+  // 🔘 Handle button click (no animation)
+  const handleButtonClick = async () => {
+    if (!user) {
+      alert("Please sign in to like memes!");
+      return;
     }
-  };
 
- 
-  const handleComment = async () => {
-    if (!comment.trim()) return;
-
-    console.log("meme._id:", meme._id, "typeof:", typeof meme._id);
-    console.log("Sending comment:", { id: meme._id, text: comment });
-
-    try {
-      const res = await axios.post("/comment", {
-        id: meme._id,
-        text: comment,
-      });
-      setComments(res.data.meme.comments);
-      setComment("");
-    } catch (err) {
-      console.error("Error posting comment:", err);
+    // Just toggle, no animation
+    if (onLikeToggle) {
+      await onLikeToggle(meme._id);
     }
   };
 
   return (
     <div className="meme-card-container">
-      <img src={meme.imageUrl} alt={meme.title} />
+      {/* ✅ Double-click for animation */}
+      <div 
+        className="meme-image-wrapper" 
+        onDoubleClick={handleDoubleClick}
+        style={{ position: "relative" }}
+      >
+        <img 
+          src={meme.imageUrl} 
+          alt={meme.title} 
+          className="meme-image"
+          draggable="false"
+        />
 
-     
+        {/* ❤ Popup Heart Animation */}
+        <AnimatePresence>
+          {showHeart && (
+            <motion.div
+              className="big-heart"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1.5 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <AiFillHeart color="red" size={120} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       <div className="meme-action-bar">
-        <button onClick={handleLike} className="like-button">
+        {/* ✅ Button click without animation */}
+        <button 
+          onClick={handleButtonClick}
+          className="like-button" 
+          title={liked ? "Unlike" : "Like"}
+        >
           {liked ? (
-            <AiFillHeart className="liked-icon" />
+            <AiFillHeart className="liked-icon" color="red" size={24} />
           ) : (
-            <AiOutlineHeart className="unliked-icon" />
+            <AiOutlineHeart size={24} />
           )}
         </button>
 
-        <button
-          onClick={() => setCommentOpen(!commentOpen)}
-          className="comment-button"
-        >
-          <FaRegComment />
+        <button onClick={onComment} className="comment-button" title="Comment">
+          <FaRegComment size={22} />
         </button>
 
-        <button onClick={handleEditToggle} className="share-button">
-          <FaShare />
+        <button onClick={onShare} className="share-button" title="Share">
+          <FaShare size={20} />
         </button>
       </div>
 
-     
-      {showForm && (
-        <div className="share-form">
-          <input
-            type="text"
-            placeholder="Search users"
-            className="Search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchResults.length > 0 && (
-            <ul className="results-dropdown">
-              {searchResults.map((user) => (
-                <li
-                  key={user._id}
-                  onClick={() => handleSend(user._id)}
-                  className="result-item"
-                >
-                  {user.username}
-                </li>
-              ))}
-            </ul>
+      <p className="meme-title">{meme.title}</p>
+      <p className="meme-likes">
+        {likes} {likes === 1 ? "like" : "likes"}
+      </p>
+
+      {/* ✅ Show last 2 comments */}
+      {meme.comments && meme.comments.length > 0 && (
+        <div className="meme-top-comments">
+          {meme.comments.slice(-2).map((c, i) => (
+            <p key={i} className="comment-text">
+              <strong>{c.user?.username || "User"}:</strong> {c.text}
+            </p>
+          ))}
+          {meme.comments.length > 2 && (
+            <button onClick={onComment} className="view-all-comments">
+              View all {meme.comments.length} comments
+            </button>
           )}
         </div>
-      )}
-
-      <p className="meme-title">{meme.title}</p>
-      <p className="meme-likes">{likes} likes</p>
-
-      {/* Comments toggle */}
-      {commentOpen && (
-        <>
-          <div className="comment-box">
-            <input
-              type="text"
-              placeholder="Add a comment..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              className="comment-input"
-            />
-            <button onClick={handleComment} className="comment-submit-button">
-              Post
-            </button>
-          </div>
-
-          <div className="comments-list">
-            {comments && comments.length > 0 ? (
-              comments.map((c, i) => (
-                <div key={i} className="comment-item">
-                  {c.text}
-                </div>
-              ))
-            ) : (
-              <div className="no-comments">No comments yet</div>
-            )}
-          </div>
-        </>
       )}
     </div>
   );
