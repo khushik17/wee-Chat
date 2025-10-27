@@ -1,12 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Landing from './assets/pages/landing';
-import Chat from './assets/pages/Chat';
-import MemeFeed from './assets/pages/MemeFeed';
-import Profilepage from './assets/pages/Profile';
-import Chatbot from './assets/pages/Chatbot';
-import Chatuser from './assets/pages/Chatuser';
-import SignUpPage from './assets/pages/signup';
-import LoginPage from './assets/pages/login';
+import Landing from './assets/pages/Landing.jsx';
+import Chat from './assets/pages/Chat.jsx';
+import MemeFeed from './assets/pages/MemeFeed.jsx';
+import Profilepage from './assets/pages/Profile.jsx';
+import Chatbot from './assets/pages/Chatbot.jsx';
+import Chatuser from './assets/pages/Chatuser.jsx';
+import SignUpPage from './assets/pages/Signup.jsx';
+import LoginPage from './assets/pages/Login.jsx';
 import { useUser } from '@clerk/clerk-react';
 import './App.css';
 
