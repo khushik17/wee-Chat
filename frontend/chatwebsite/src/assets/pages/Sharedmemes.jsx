@@ -2,16 +2,19 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import MemeCard from '../components/Chatmeme';
 import socket from "../../socket";
-
+import { useAuth } from "@clerk/clerk-react";
+import API_URL from "../../config/api";
 
 export default function SharedMemes() {
   const [sharedMemes, setSharedMemes] = useState([]);
+  const { getToken } = useAuth();
 
   useEffect(() => {
     const fetchShared = async () => {
       try {
-        const res = await axios.get('http://localhost:3000/getshared', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        const token = await getToken();
+        const res = await axios.get(`${API_URL}/getshared`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
         setSharedMemes(res.data.shared);
       } catch (err) {
@@ -21,7 +24,6 @@ export default function SharedMemes() {
 
     fetchShared();
 
-    // Listen for incoming memes in real-time
     socket.on("receive_meme", (memeMessage) => {
       setSharedMemes(prev => [memeMessage.meme, ...prev]);
     });
@@ -29,7 +31,7 @@ export default function SharedMemes() {
     return () => {
       socket.off("receive_meme");
     };
-  }, []);
+  }, [getToken]);
 
   return (
     <div className="cont">
@@ -42,4 +44,3 @@ export default function SharedMemes() {
     </div>
   );
 }
-;

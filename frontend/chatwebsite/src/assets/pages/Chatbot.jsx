@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import { ArrowLeft, Send, Bot, User, Loader } from "lucide-react";
 import "../styles/Ai.css";
+import API_URL from "../../config/api";
 
 export default function ChatbotPage({ isDarkMode }) {
   return <Chatbot isDarkMode={isDarkMode} />;
@@ -16,11 +17,10 @@ function Chatbot({ isDarkMode }) {
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const { getToken } = useAuth(); // ✅ Clerk authentication hook
+  const { getToken } = useAuth();
 
   const CHAT_STORAGE_KEY = "chatbotMessages";
 
-  // Load chat history on mount
   useEffect(() => {
     const savedHistory = localStorage.getItem(CHAT_STORAGE_KEY);
     if (savedHistory) {
@@ -35,12 +35,10 @@ function Chatbot({ isDarkMode }) {
     inputRef.current?.focus();
   }, []);
 
-  // Auto-scroll when chat updates
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory, isLoading]);
 
-  // Save chatHistory to localStorage whenever it changes
   useEffect(() => {
     if (chatHistory.length > 0) {
       localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatHistory));
@@ -57,7 +55,6 @@ function Chatbot({ isDarkMode }) {
     setIsLoading(true);
 
     try {
-      // ✅ Get Clerk token dynamically
       const token = await getToken();
       
       if (!token) {
@@ -65,7 +62,7 @@ function Chatbot({ isDarkMode }) {
       }
 
       const res = await axios.post(
-        "http://localhost:3000/chat",
+        `${API_URL}/chat`,
         { message: userMsg.content },
         {
           headers: {
@@ -87,7 +84,6 @@ function Chatbot({ isDarkMode }) {
       let errorMessage = "Error occurred.";
       
       if (error.response) {
-        // Server responded with error
         errorMessage = error.response.data?.error || `Server error: ${error.response.status}`;
       } else if (error.message.includes("Authentication")) {
         errorMessage = "Please login again to continue chatting.";
@@ -120,7 +116,6 @@ function Chatbot({ isDarkMode }) {
 
   return (
     <div className={`chatbot-container ${isDarkMode ? "dark-mode" : ""}`}>
-      {/* Header */}
       <div className="chatbot-header">
         <div className="header-left">
           <button
@@ -162,7 +157,6 @@ function Chatbot({ isDarkMode }) {
         </div>
       </div>
 
-      {/* Messages Area */}
       <div className="chatbot-messages">
         {chatHistory.length === 0 ? (
           <div className="welcome-message">
@@ -246,7 +240,6 @@ function Chatbot({ isDarkMode }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
       <div className="chatbot-input-area">
         <form className="chatbot-input" onSubmit={handleChat}>
           <div className="input-wrapper">

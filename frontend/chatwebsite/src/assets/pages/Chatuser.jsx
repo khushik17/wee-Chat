@@ -4,8 +4,9 @@ import axios from "axios";
 import io from "socket.io-client";
 import { Send, Phone, Video, MoreVertical, Sun, Moon } from "lucide-react";
 import "../styles/Chatuser.css";
+import API_URL from "../../config/api";
 
-const socket = io("http://localhost:3000");
+const socket = io(API_URL);
 
 export default function ChatUser({ receiverId, receiverUsername, receiverProfilePic, isDarkMode: parentDarkMode }) {
   const [message, setMessage] = useState("");
@@ -48,7 +49,7 @@ export default function ChatUser({ receiverId, receiverUsername, receiverProfile
         setLoading(true);
         const token = await getToken();
         
-        const response = await axios.get("http://localhost:3000/getmessages", {
+        const response = await axios.get(`${API_URL}/getmessages`, {
           params: { with: receiverId },
           headers: { Authorization: `Bearer ${token}` },
         });

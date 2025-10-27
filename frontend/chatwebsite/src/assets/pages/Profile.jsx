@@ -4,11 +4,11 @@ import "../styles/Profile.css";
 import { useUser, useAuth, UserButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import API_URL from "../../config/api";
 
 export default function Profilepage() {
   return (
     <div className="Profile-Container">
-      {/* Shooting Stars */}
       <div className="shooting-star"></div>
       <div className="shooting-star"></div>
       <div className="shooting-star"></div>
@@ -39,21 +39,18 @@ function Profile() {
     return name.substring(0, 1).toUpperCase();
   };
 
-  // Sync user to MongoDB - ONLY ONCE
   useEffect(() => {
     if (!isLoaded || !user) return;
 
     const syncUserToDB = async () => {
       try {
         const token = await getToken({ template: "my-jwt-template" });
-        // ✅ FIX: Don't send profilePicture to avoid overwriting custom uploads
         await axios.post(
-          "http://localhost:3000/api/users/create",
+          `${API_URL}/api/users/create`,
           {
             clerkId: user.id,
             username: user.username,
             email: user.primaryEmailAddress?.emailAddress,
-            // ❌ REMOVED: profilePicture: user.imageUrl
           },
           {
             headers: { Authorization: `Bearer ${token}` }
@@ -67,14 +64,13 @@ function Profile() {
     syncUserToDB();
   }, [isLoaded, user, getToken]);
 
-  // Fetch profile data
   useEffect(() => {
     if (!isLoaded || !user) return;
 
     const fetchProfile = async () => {
       try {
         const token = await getToken({ template: "my-jwt-template" });
-        const res = await axios.get("http://localhost:3000/profile", {
+        const res = await axios.get(`${API_URL}/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -86,12 +82,11 @@ function Profile() {
           username: data.username || "",
         });
 
-        // ✅ FIX: Properly set profile picture
         if (data.profilePicture) {
           if (data.profilePicture.startsWith('http')) {
             setProfilePic(data.profilePicture);
           } else {
-            setProfilePic(`http://localhost:3000${data.profilePicture}`);
+            setProfilePic(`${API_URL}${data.profilePicture}`);
           }
           console.log("✅ Profile pic set:", data.profilePicture);
         } else {
@@ -106,7 +101,6 @@ function Profile() {
     fetchProfile();
   }, [isLoaded, user, getToken]);
 
-  // Handle image selection
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -116,10 +110,8 @@ function Profile() {
     }
   };
 
-  // Toggle edit form
   const handleEditToggle = () => setShowForm(!showForm);
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isLoaded || !user) return;
@@ -133,7 +125,7 @@ function Profile() {
 
     try {
       const token = await getToken({ template: "my-jwt-template" });
-      const response = await axios.put("http://localhost:3000/update", formData, {
+      const response = await axios.put(`${API_URL}/update`, formData, {
         headers: { 
           "Content-Type": "multipart/form-data", 
           Authorization: `Bearer ${token}` 
@@ -148,16 +140,14 @@ function Profile() {
         username: data.username || "",
       });
 
-      // ✅ FIX: Update profile picture after successful upload
       if (data.profilePicture) {
         const newPicUrl = data.profilePicture.startsWith('http') 
           ? data.profilePicture 
-          : `http://localhost:3000${data.profilePicture}`;
+          : `${API_URL}${data.profilePicture}`;
         setProfilePic(newPicUrl);
         console.log("✅ Profile pic updated:", newPicUrl);
       }
       
-      // Clear preview and form
       setPreviewUrl(null);
       setSelectedFile(null);
       setBio("");
@@ -171,12 +161,10 @@ function Profile() {
     }
   };
 
-  // Determine which image to show
   const displayImage = previewUrl || profilePic;
 
   return (
     <div className="Container">
-      {/* Navigation Arrows */}
       <div className="Floating-Arrows">
         <ArrowLeft 
           className="Arrow Left" 
@@ -190,9 +178,7 @@ function Profile() {
         />
       </div>
 
-      {/* Profile Box */}
       <div className="Profile-Box">
-        {/* Profile Picture */}
         <div className="Profile-Picture-Upload" 
              onClick={() => document.getElementById("imageInput").click()}>
           <div className="Profile-Picture">
@@ -236,22 +222,18 @@ function Profile() {
           />
         </div>
 
-        {/* Profile Info */}
         <h2>{user?.fullName || "Your Name"}</h2>
         <p>{savedData.bio || "Your bio will appear here"}</p>
         <h4>@{savedData.username || user?.username || "username_here"}</h4>
 
-        {/* Action Buttons */}
         <button className="edit-btn" onClick={handleEditToggle}>
           {showForm ? "Cancel" : "Edit Profile"}
         </button>
 
-        {/* User Button (Sign Out) - Normal Size */}
         <div className="user-button-wrapper">
           <UserButton />
         </div>
 
-        {/* Edit Form */}
         {showForm && (
           <form className="Edit-Form" onSubmit={handleSubmit}>
             <input

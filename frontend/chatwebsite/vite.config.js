@@ -5,34 +5,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-  proxy: {
-  '/like': {
-    target: 'http://localhost:3000',
-    changeOrigin: true,
-    secure: false,
-  },
-  '/unlike': {
-    target: 'http://localhost:3000',
-    changeOrigin: true,
-    secure: false,
-  },
-  '/comment': {
-    target: 'http://localhost:3000',
-    changeOrigin: true,
-    secure: false,
-  },
-  '/send': {
-    target: 'http://localhost:3000',
-    changeOrigin: true,
-    secure: false,
-  },
-  '/memes': {
-    target: 'http://localhost:3000',
-    changeOrigin: true,
-    secure: false,
-  },
-
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000', // Ya jo bhi tumhara backend port hai
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   }
-}
 })
-

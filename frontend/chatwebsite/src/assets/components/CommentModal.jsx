@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import "../styles/CommentModal.css";
+import API_URL from "../../config/api";
 
 export default function CommentModal({ meme, onClose, onComment }) {
   const [commentText, setCommentText] = useState("");
@@ -30,7 +31,7 @@ export default function CommentModal({ meme, onClose, onComment }) {
       const config = await getAuthConfig();
       
       const res = await axios.post(
-        `http://localhost:3000/comment`,
+        `${API_URL}/comment`,
         { 
           id: meme._id,
           text: commentText.trim() 
@@ -104,7 +105,6 @@ export default function CommentModal({ meme, onClose, onComment }) {
             </button>
           </div>
 
-          {/* ✅ Red close button */}
           <button className="comment-modal-close" onClick={onClose}>
             Close
           </button>

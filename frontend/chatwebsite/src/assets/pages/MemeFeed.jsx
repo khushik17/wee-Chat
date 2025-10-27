@@ -8,6 +8,7 @@ import CommentModal from "../components/CommentModal";
 import Navbar from "../components/Navbar";
 import socket from "../../socket";
 import { useUser, useAuth } from "@clerk/clerk-react";
+import API_URL from "../../config/api";
 
 import "../styles/MemeFeed.css";
 
@@ -41,7 +42,6 @@ export default function MemeFeed() {
     return () => socket.off("receive_meme");
   }, [isLoaded, user]);
 
-  // ✅ Listen for theme changes
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode") === "true";
     setIsDarkMode(savedMode);
@@ -54,7 +54,6 @@ export default function MemeFeed() {
     return () => window.removeEventListener("themeChange", handleThemeChange);
   }, []);
 
-  // ✅ Listen for refresh event from Navbar
   useEffect(() => {
     const handleRefresh = async () => {
       await refreshAllMemes();
@@ -78,8 +77,8 @@ export default function MemeFeed() {
       const config = await getAuthConfig();
       const lastId = memes.length > 0 ? memes[memes.length - 1]._id : null;
       const url = lastId
-        ? `http://localhost:3000/memes?lastId=${lastId}&limit=6`
-        : `http://localhost:3000/memes?limit=6`;
+        ? `${API_URL}/memes?lastId=${lastId}&limit=6`
+        : `${API_URL}/memes?limit=6`;
 
       const res = await axios.get(url, config);
       const fresh = res.data.memes.filter((m) => !seen.current.has(m._id));
@@ -96,7 +95,6 @@ export default function MemeFeed() {
     }
   };
 
-  // ✅ Refresh all memes function
   const refreshAllMemes = async () => {
     if (isRefreshing || !isLoaded || !user) return;
 
@@ -104,13 +102,13 @@ export default function MemeFeed() {
     try {
       const config = await getAuthConfig();
       
-      await axios.get("http://localhost:3000/refreshMemes", config);
+      await axios.get(`${API_URL}/refreshMemes`, config);
 
       seen.current.clear();
       setMemes([]);
       setHasMore(true);
 
-      const res = await axios.get("http://localhost:3000/memes?limit=6", config);
+      const res = await axios.get(`${API_URL}/memes?limit=6`, config);
       const fresh = res.data.memes;
 
       fresh.forEach((m) => seen.current.add(m._id));
@@ -157,7 +155,7 @@ export default function MemeFeed() {
       const endpoint = hasLiked ? "/unlike" : "/like";
       
       await axios.post(
-        `http://localhost:3000${endpoint}`,
+        `${API_URL}${endpoint}`,
         { id: memeId },
         config
       );
@@ -182,7 +180,6 @@ export default function MemeFeed() {
     }
   };
 
-  // ✅ Remove alert from handleSend
   const handleSend = async (receiverId) => {
     if (!isLoaded || !user || !modalMeme?._id || !receiverId) {
       return;
@@ -191,7 +188,7 @@ export default function MemeFeed() {
     try {
       const config = await getAuthConfig();
       await axios.post(
-        "http://localhost:3000/send",
+        `${API_URL}/send`,
         { memeid: modalMeme._id, receiverId },
         config
       );
@@ -202,7 +199,6 @@ export default function MemeFeed() {
         meme: modalMeme,
       });
 
-      // ✅ No alert - silent send
       setShareModalOpen(false);
       setModalMeme(null);
     } catch (err) {

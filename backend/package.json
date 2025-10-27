@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node index.js"
   },
+  "engines": {
+    "node": "18.x"
+  },
   "dependencies": {
     "@clerk/express": "^1.7.42",
     "@google/generative-ai": "^0.24.1",

@@ -17,14 +17,33 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ✅ FIXED: Dynamic CORS for deployment
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(cors({ 
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true 
+}));
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(clerkMiddleware());
 
+// ✅ MongoDB Connection (using MONGO_URL as per your .env)
 mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log("MongoDB connected ✅"))
-  .catch(err => console.error(err));
+  .catch(err => console.error("MongoDB connection error:", err));
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
@@ -35,24 +54,21 @@ const upload = multer({ storage });
 // -------------------- Routes --------------------
 
 // ✅ Public route (no auth needed)
-// ✅ FIXED: Don't overwrite profilePicture if user exists
 app.post('/api/users/create', async (req, res) => {
   try {
     const { clerkId, username, email, profilePicture } = req.body;
     let user = await User.findOne({ clerkId });
     
     if (user) {
-      // ✅ User already exists - DON'T update profilePicture
       console.log("✅ User exists, not updating profile pic");
       return res.status(200).json(user);
     }
 
-    // ✅ New user - only set profilePicture if provided
     user = new User({ 
       clerkId, 
       username, 
       email,
-      ...(profilePicture && { profilePicture }) // Only if provided
+      ...(profilePicture && { profilePicture })
     });
     
     await user.save();
@@ -85,7 +101,6 @@ app.get("/profile", requireAuth(), async (req, res) => {
   }
 });
 
-// ✅ FIXED: /getmessages - Added sender field
 app.get('/getmessages', requireAuth(), async (req, res) => {
   const { userId } = getAuth(req); 
   const receiverId = req.query.with;
@@ -99,7 +114,7 @@ app.get('/getmessages', requireAuth(), async (req, res) => {
     if (!chat) return res.json({ messages: [] });
 
     const simplifiedMessages = chat.messages.map(msg => ({
-      sender: msg.sender.clerkId || msg.sender,  // ✅ FIXED: Added sender
+      sender: msg.sender.clerkId || msg.sender,
       username: msg.sender.username || "Unknown",
       text: msg.content,
       type: msg.type,
@@ -153,6 +168,7 @@ app.put('/update', requireAuth(), upload.single("profilePicture"), async (req, r
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 app.get('/search', requireAuth(), async (req, res) => {
   try {
     const { userId } = getAuth(req);
@@ -194,7 +210,7 @@ app.get('/recent-chats', requireAuth(), async (req, res) => {
 
     const chats = await Chat.find({ participants: userId })
       .sort({ updatedAt: -1 })
-      .populate('participants', 'username profilePicture clerkId email')  // ✅ Added email
+      .populate('participants', 'username profilePicture clerkId email')
       .populate('messages.sender', 'username profilePicture clerkId')
       .populate('messages.meme');
 
@@ -209,14 +225,14 @@ app.get('/recent-chats', requireAuth(), async (req, res) => {
 
       return {
         userId: friend.clerkId,
-        clerkId: friend.clerkId,  // ✅ Added for compatibility
+        clerkId: friend.clerkId,
         username: friend.username,
         profilePicture: friend.profilePicture,
-        email: friend.email || '',  // ✅ Added email
+        email: friend.email || '',
         messages: chat.messages.map(m => ({
           _id: m._id,
-          sender: m.sender?.clerkId || m.sender,  // ✅ FIX: Handle populated object
-          senderUsername: m.sender?.username || 'Unknown',  // ✅ Added
+          sender: m.sender?.clerkId || m.sender,
+          senderUsername: m.sender?.username || 'Unknown',
           content: m.content,
           meme: m.meme || null,
           timeStamp: m.timeStamp
@@ -224,7 +240,7 @@ app.get('/recent-chats', requireAuth(), async (req, res) => {
       };
     }).filter(Boolean);
 
-    console.log('📤 Sending recent chats:', recent);  // ✅ Debug log
+    console.log('📤 Sending recent chats:', recent);
     res.json({ recent });
   } catch (err) {
     console.error(err);
@@ -394,7 +410,16 @@ app.get('/getshared', requireAuth(), async (req, res) => {
 
 // -------------------- Socket.IO --------------------
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: 'http://localhost:5173', methods: ['GET','POST'] } });
+
+// ✅ FIXED: Dynamic Socket.io CORS
+const io = new Server(server, { 
+  cors: { 
+    origin: allowedOrigins,
+    methods: ['GET','POST'],
+    credentials: true
+  } 
+});
+
 const onlineUsers = {};
 
 io.on("connection", (socket) => {
@@ -406,7 +431,6 @@ io.on("connection", (socket) => {
     io.emit("online_users", Object.keys(onlineUsers));
   });
 
-  // ✅ FIXED: send_message - Added senderId in emit
   socket.on("send_message", async (data) => {
     try {
       let chat = await Chat.findOne({ participants: { $all: [data.senderId, data.receiverId] } });
@@ -426,7 +450,7 @@ io.on("connection", (socket) => {
       if (receiverSocketId) {
         io.to(receiverSocketId).emit("receive_message", {
           ...messageObj,
-          senderId: data.senderId  // ✅ FIXED: Added senderId
+          senderId: data.senderId
         });
       }
     } catch (err) {
@@ -434,7 +458,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // ✅ FIXED: send_meme - Added senderId in emit
   socket.on("send_meme", async (data) => {
     try {
       let chat = await Chat.findOne({ participants: { $all: [data.senderId, data.receiverId] } });
@@ -454,7 +477,7 @@ io.on("connection", (socket) => {
       if (receiverSocketId) {
         io.to(receiverSocketId).emit("receive_meme", {
           ...memeObj,
-          senderId: data.senderId  // ✅ FIXED: Added senderId
+          senderId: data.senderId
         });
       }
     } catch (err) {
@@ -472,4 +495,7 @@ io.on("connection", (socket) => {
     io.emit("online_users", Object.keys(onlineUsers));
   });
 });
-server.listen(3000, () => console.log("Server running on port 3000")); 
+
+// ✅ FIXED: Dynamic PORT for deployment
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

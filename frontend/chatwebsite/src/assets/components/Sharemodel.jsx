@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
 import "../styles/ShareModel.css";
+import API_URL from "../../config/api";
 
 export default function ShareModal({ meme, onClose, onSend }) {
   const { getToken } = useAuth();
@@ -18,7 +19,7 @@ export default function ShareModal({ meme, onClose, onSend }) {
 
       try {
         const token = await getToken();
-        const res = await axios.get("http://localhost:3000/chat-search", {
+        const res = await axios.get(`${API_URL}/chat-search`, {
           params: { q: searchQuery },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -36,7 +37,6 @@ export default function ShareModal({ meme, onClose, onSend }) {
     return () => clearTimeout(timeoutId);
   }, [searchQuery, getToken]);
 
-  // ✅ Handle send without alert
   const handleSendToUser = async (receiverId) => {
     if (sending) return;
     

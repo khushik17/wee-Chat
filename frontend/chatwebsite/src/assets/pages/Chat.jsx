@@ -6,6 +6,7 @@ import { AiOutlineArrowLeft } from "react-icons/ai";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth, useUser } from "@clerk/clerk-react";
+import API_URL from "../../config/api";
 
 export default function ChatLanding() {
   const navigate = useNavigate();
@@ -74,7 +75,7 @@ export default function ChatLanding() {
         const token = await getToken();
         if (!token) return;
 
-        const res = await axios.get("http://localhost:3000/profile", {
+        const res = await axios.get(`${API_URL}/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -94,7 +95,7 @@ export default function ChatLanding() {
         const token = await getToken();
         if (!token) return;
 
-        const response = await axios.get("http://localhost:3000/recent-chats", {
+        const response = await axios.get(`${API_URL}/recent-chats`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -118,7 +119,7 @@ export default function ChatLanding() {
         const token = await getToken();
         if (!token) return;
 
-        const response = await axios.get("http://localhost:3000/chat-search", {
+        const response = await axios.get(`${API_URL}/chat-search`, {
           params: { q: searchQuery },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -186,7 +187,6 @@ export default function ChatLanding() {
     localStorage.removeItem("showChatbot");
   };
 
-  // ✅ NEW: Function to go back to sidebar (for mobile)
   const handleBackToSidebar = () => {
     setSelectedUser(null);
     setShowChatbot(false);
@@ -214,7 +214,7 @@ export default function ChatLanding() {
               <div className="current-user-info">
                 {profilePic ? (
                   <img
-                    src={`http://localhost:3000${profilePic}`}
+                    src={`${API_URL}${profilePic}`}
                     alt="Profile"
                     className="user-avatar"
                     onError={(e) => {
@@ -294,7 +294,7 @@ export default function ChatLanding() {
                   >
                     {user.profilePicture ? (
                       <img
-                        src={`http://localhost:3000${user.profilePicture}`}
+                        src={`${API_URL}${user.profilePicture}`}
                         alt={user.username}
                         className="result-avatar"
                         onError={(e) => {
@@ -356,7 +356,7 @@ export default function ChatLanding() {
                     >
                       {chatUser.profilePicture ? (
                         <img
-                          src={`http://localhost:3000${chatUser.profilePicture}`}
+                          src={`${API_URL}${chatUser.profilePicture}`}
                           alt={chatUser.username}
                           className="chat-avatar"
                           onError={(e) => {
