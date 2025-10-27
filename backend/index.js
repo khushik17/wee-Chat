@@ -1,7 +1,3 @@
-// index.js
-import dotenv from 'dotenv';
-dotenv.config();
-
 import express from 'express';
 import axios from 'axios';
 import multer from 'multer';
@@ -39,14 +35,28 @@ const upload = multer({ storage });
 // -------------------- Routes --------------------
 
 // ✅ Public route (no auth needed)
+// ✅ FIXED: Don't overwrite profilePicture if user exists
 app.post('/api/users/create', async (req, res) => {
   try {
-    const { clerkId, username, name, email, profilePicture } = req.body;
+    const { clerkId, username, email, profilePicture } = req.body;
     let user = await User.findOne({ clerkId });
-    if (user) return res.status(200).json(user);
+    
+    if (user) {
+      // ✅ User already exists - DON'T update profilePicture
+      console.log("✅ User exists, not updating profile pic");
+      return res.status(200).json(user);
+    }
 
-    user = new User({ clerkId, username, email, profilePicture });
+    // ✅ New user - only set profilePicture if provided
+    user = new User({ 
+      clerkId, 
+      username, 
+      email,
+      ...(profilePicture && { profilePicture }) // Only if provided
+    });
+    
     await user.save();
+    console.log("✅ New user created");
     res.status(201).json(user);
   } catch (err) {
     console.error(err);
@@ -54,14 +64,12 @@ app.post('/api/users/create', async (req, res) => {
   }
 });
 
-// Backend: index.js ya routes file
 app.get("/profile", requireAuth(), async (req, res) => {
   try {
-    const { userId } = getAuth(req); // Clerk user ID
-    const user = await User.findOne({ clerkId: userId }); // DB lookup
+    const { userId } = getAuth(req);
+    const user = await User.findOne({ clerkId: userId });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Sirf necessary fields return karo
     res.json({
       user: {
         clerkId: user.clerkId,
@@ -77,7 +85,7 @@ app.get("/profile", requireAuth(), async (req, res) => {
   }
 });
 
-// ✅ Protected route - requireAuth() added
+// ✅ FIXED: /getmessages - Added sender field
 app.get('/getmessages', requireAuth(), async (req, res) => {
   const { userId } = getAuth(req); 
   const receiverId = req.query.with;
@@ -85,16 +93,17 @@ app.get('/getmessages', requireAuth(), async (req, res) => {
 
   try {
     let chat = await Chat.findOne({ participants: { $all: [userId, receiverId] } })
-      .populate('messages.sender', 'username')
-      .populate('messages.meme');  // ✅ MEME POPULATE
+      .populate('messages.sender', 'username clerkId')
+      .populate('messages.meme');
 
     if (!chat) return res.json({ messages: [] });
 
     const simplifiedMessages = chat.messages.map(msg => ({
-      username: msg.sender.username,
+      sender: msg.sender.clerkId || msg.sender,  // ✅ FIXED: Added sender
+      username: msg.sender.username || "Unknown",
       text: msg.content,
       type: msg.type,
-      meme: msg.meme || null,  // ✅ Ab yeh pura object hoga
+      meme: msg.meme || null,
       timeStamp: msg.timeStamp
     }));
 
@@ -105,34 +114,45 @@ app.get('/getmessages', requireAuth(), async (req, res) => {
   }
 });
 
-// ✅ Protected route
 app.put('/update', requireAuth(), upload.single("profilePicture"), async (req, res) => {
   const { userId } = getAuth(req);
+  
+  console.log("=== UPDATE REQUEST ===");
+  console.log("📸 File received:", req.file);
+  console.log("📝 Body received:", req.body);
+  console.log("👤 User ID:", userId);
 
-  const validation = updateUserSchema.safeParse(req.body);
-  if (!validation.success) return res.status(400).json({ error: "Invalid input", details: validation.error.errors });
-
-  const { bio, username } = validation.data; // ✅ name removed
+  const { bio, username } = req.body;
   const imagePath = req.file ? `/uploads/${req.file.filename}` : undefined;
 
-  const updateFields = { 
-    ...(username && { username }), 
-    ...(bio && { bio }), 
-    ...(imagePath && { profilePicture: imagePath }) 
-  }; // ✅ name removed
+  console.log("🖼️ Image path:", imagePath);
+
+  const updateFields = {};
+  if (username) updateFields.username = username;
+  if (bio) updateFields.bio = bio;
+  if (imagePath) updateFields.profilePicture = imagePath;
+
+  console.log("💾 Update fields:", updateFields);
 
   try {
-    const updatedUser = await User.findOneAndUpdate({ clerkId: userId }, { $set: updateFields }, { new: true });
+    const beforeUpdate = await User.findOne({ clerkId: userId });
+    console.log("📋 BEFORE update:", beforeUpdate?.profilePicture);
+
+    const updatedUser = await User.findOneAndUpdate(
+      { clerkId: userId }, 
+      { $set: updateFields }, 
+      { new: true }
+    );
+    
     if (!updatedUser) return res.status(404).json({ error: "User not found" });
 
+    console.log("✅ AFTER update:", updatedUser.profilePicture);
     res.json({ message: "Profile updated", user: updatedUser });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-// ✅ Protected route
 app.get('/search', requireAuth(), async (req, res) => {
   try {
     const { userId } = getAuth(req);
@@ -153,7 +173,6 @@ app.get('/search', requireAuth(), async (req, res) => {
   }
 });
 
-// ✅ Protected route
 app.get('/chat-search', requireAuth(), async (req, res) => {
   const { userId } = getAuth(req);
   const query = req.query.q;
@@ -169,41 +188,43 @@ app.get('/chat-search', requireAuth(), async (req, res) => {
   }
 });
 
-// ✅ Protected route
 app.get('/recent-chats', requireAuth(), async (req, res) => {
   try {
     const { userId } = getAuth(req);
 
     const chats = await Chat.find({ participants: userId })
       .sort({ updatedAt: -1 })
-      .populate('participants', 'username profilePicture clerkId')  // ✅ clerkId add kiya
-      .populate('messages.sender', 'username profilePicture');
+      .populate('participants', 'username profilePicture clerkId email')  // ✅ Added email
+      .populate('messages.sender', 'username profilePicture clerkId')
+      .populate('messages.meme');
 
-    // ✅ Remove duplicates using Set
     const seenUserIds = new Set();
     
     const recent = chats.map(chat => {
       const friend = chat.participants.find(p => p.clerkId !== userId);
       
-      // ✅ Skip if no friend or already seen
       if (!friend || seenUserIds.has(friend.clerkId)) return null;
       
-      seenUserIds.add(friend.clerkId);  // ✅ Track seen users
+      seenUserIds.add(friend.clerkId);
 
       return {
-        userId: friend.clerkId,  // ✅ Use clerkId as userId
+        userId: friend.clerkId,
+        clerkId: friend.clerkId,  // ✅ Added for compatibility
         username: friend.username,
         profilePicture: friend.profilePicture,
+        email: friend.email || '',  // ✅ Added email
         messages: chat.messages.map(m => ({
           _id: m._id,
-          sender: m.sender,
+          sender: m.sender?.clerkId || m.sender,  // ✅ FIX: Handle populated object
+          senderUsername: m.sender?.username || 'Unknown',  // ✅ Added
           content: m.content,
           meme: m.meme || null,
           timeStamp: m.timeStamp
         }))
       };
-    }).filter(Boolean);  // ✅ Remove nulls
+    }).filter(Boolean);
 
+    console.log('📤 Sending recent chats:', recent);  // ✅ Debug log
     res.json({ recent });
   } catch (err) {
     console.error(err);
@@ -211,7 +232,6 @@ app.get('/recent-chats', requireAuth(), async (req, res) => {
   }
 });
 
-// ✅ Protected route - FIXED (verifyClerkToken removed)
 app.post("/chat", requireAuth(), async(req, res) => {
   const userInput = req.body.message;
   const reply = await chatWithDeepSeek(userInput);
@@ -248,7 +268,6 @@ async function fetchAndSaveMemes() {
   }
 }
 
-// ✅ Protected route - FIXED
 app.get('/memes', requireAuth(), async (req, res) => {
   const { userId } = getAuth(req);
   const limit = parseInt(req.query.limit) || 10;
@@ -275,13 +294,11 @@ app.get('/memes', requireAuth(), async (req, res) => {
   }
 });
 
-// ✅ Public route (no auth)
 app.get('/refreshMemes', async (_req, res) => {
   await fetchAndSaveMemes();
   res.json({ message: "Memes refreshed" });
 });
 
-// ✅ Protected route
 app.post('/like', requireAuth(), async (req, res) => {
   const { userId } = getAuth(req);
   const id = req.body.id;
@@ -303,7 +320,6 @@ app.post('/like', requireAuth(), async (req, res) => {
   }
 });
 
-// ✅ Protected route
 app.post('/unlike', requireAuth(), async (req, res) => {
   const { userId } = getAuth(req);
   const id = req.body.id;
@@ -322,7 +338,6 @@ app.post('/unlike', requireAuth(), async (req, res) => {
   }
 });
 
-// ✅ Protected route
 app.post('/comment', requireAuth(), async (req, res) => {
   const { userId } = getAuth(req);
   const { id, text } = req.body;
@@ -345,7 +360,6 @@ app.post('/comment', requireAuth(), async (req, res) => {
   }
 });
 
-// ✅ Protected route
 app.post('/send', requireAuth(), async (req, res) => {
   const { userId } = getAuth(req);
 
@@ -363,7 +377,6 @@ app.post('/send', requireAuth(), async (req, res) => {
   }
 });
 
-// ✅ Protected route
 app.get('/getshared', requireAuth(), async (req, res) => {
   const { userId } = getAuth(req);
 
@@ -393,10 +406,16 @@ io.on("connection", (socket) => {
     io.emit("online_users", Object.keys(onlineUsers));
   });
 
+  // ✅ FIXED: send_message - Added senderId in emit
   socket.on("send_message", async (data) => {
     try {
       let chat = await Chat.findOne({ participants: { $all: [data.senderId, data.receiverId] } });
-      const messageObj = { sender: data.senderId, content: data.message, type: "text", timeStamp: new Date() };
+      const messageObj = { 
+        sender: data.senderId, 
+        content: data.message, 
+        type: "text", 
+        timeStamp: new Date() 
+      };
 
       if (!chat) chat = new Chat({ participants: [data.senderId, data.receiverId], messages: [messageObj] });
       else chat.messages.push(messageObj);
@@ -404,16 +423,27 @@ io.on("connection", (socket) => {
       await chat.save();
 
       const receiverSocketId = onlineUsers[data.receiverId];
-      if (receiverSocketId) io.to(receiverSocketId).emit("receive_message", messageObj);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("receive_message", {
+          ...messageObj,
+          senderId: data.senderId  // ✅ FIXED: Added senderId
+        });
+      }
     } catch (err) {
       console.error(err);
     }
   });
 
+  // ✅ FIXED: send_meme - Added senderId in emit
   socket.on("send_meme", async (data) => {
     try {
       let chat = await Chat.findOne({ participants: { $all: [data.senderId, data.receiverId] } });
-      const memeObj = { sender: data.senderId, meme: data.meme, type: "meme", timeStamp: new Date() };
+      const memeObj = { 
+        sender: data.senderId, 
+        meme: data.meme, 
+        type: "meme", 
+        timeStamp: new Date() 
+      };
 
       if (!chat) chat = new Chat({ participants: [data.senderId, data.receiverId], messages: [memeObj] });
       else chat.messages.push(memeObj);
@@ -421,7 +451,12 @@ io.on("connection", (socket) => {
       await chat.save();
 
       const receiverSocketId = onlineUsers[data.receiverId];
-      if (receiverSocketId) io.to(receiverSocketId).emit("receive_meme", memeObj);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("receive_meme", {
+          ...memeObj,
+          senderId: data.senderId  // ✅ FIXED: Added senderId
+        });
+      }
     } catch (err) {
       console.error(err);
     }
@@ -437,5 +472,4 @@ io.on("connection", (socket) => {
     io.emit("online_users", Object.keys(onlineUsers));
   });
 });
-
-server.listen(3000, () => console.log("Server running on port 3000"));
+server.listen(3000, () => console.log("Server running on port 3000")); 

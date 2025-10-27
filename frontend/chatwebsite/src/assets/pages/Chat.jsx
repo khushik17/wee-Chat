@@ -21,14 +21,42 @@ export default function ChatLanding() {
   const [showChatbot, setShowChatbot] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Redirect if not signed in
+  const getInitials = (name) => {
+    if (!name) return "U";
+    const words = name.trim().split(" ");
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.substring(0, 1).toUpperCase();
+  };
+
+  useEffect(() => {
+    const originalStyle = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      width: document.body.style.width,
+      height: document.body.style.height,
+    };
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+
+    return () => {
+      document.body.style.overflow = originalStyle.overflow;
+      document.body.style.position = originalStyle.position;
+      document.body.style.width = originalStyle.width;
+      document.body.style.height = originalStyle.height;
+    };
+  }, []);
+
   useEffect(() => {
     if (!isSignedIn) {
       navigate("/login");
     }
   }, [isSignedIn, navigate]);
 
-  // Load initial states
   useEffect(() => {
     const storedUser = localStorage.getItem("selectedUser");
     const aiMode = localStorage.getItem("showChatbot");
@@ -40,7 +68,6 @@ export default function ChatLanding() {
     setIsDarkMode(darkMode);
   }, []);
 
-  // Fetch profile info with Clerk token
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -48,9 +75,7 @@ export default function ChatLanding() {
         if (!token) return;
 
         const res = await axios.get("http://localhost:3000/profile", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         setProfilePic(res.data.user.profilePicture);
@@ -63,7 +88,6 @@ export default function ChatLanding() {
     if (isSignedIn) fetchProfile();
   }, [isSignedIn, getToken]);
 
-  // Fetch recent chats with Clerk token
   useEffect(() => {
     const fetchRecentChats = async () => {
       try {
@@ -71,12 +95,9 @@ export default function ChatLanding() {
         if (!token) return;
 
         const response = await axios.get("http://localhost:3000/recent-chats", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
-        console.log("📥 Recent chats received:", response.data.recent);
         setRecentChats(response.data.recent || []);
       } catch (err) {
         console.error("Failed to fetch recent chats", err);
@@ -86,7 +107,6 @@ export default function ChatLanding() {
     if (isSignedIn) fetchRecentChats();
   }, [isSignedIn, getToken]);
 
-  // Search users with Clerk token - debounced
   useEffect(() => {
     const fetchSearchResults = async () => {
       if (!searchQuery.trim()) {
@@ -100,9 +120,7 @@ export default function ChatLanding() {
 
         const response = await axios.get("http://localhost:3000/chat-search", {
           params: { q: searchQuery },
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         setSearchResults(response.data.users || []);
@@ -119,7 +137,6 @@ export default function ChatLanding() {
     return () => clearTimeout(timeoutId);
   }, [searchQuery, getToken, isSignedIn]);
 
-  // Normalize user object and open chat
   const openChatWithUser = (user) => {
     const normalizedUser = {
       userId: user.clerkId || user.userId,
@@ -127,8 +144,6 @@ export default function ChatLanding() {
       profilePicture: user.profilePicture,
       email: user.email,
     };
-
-    console.log("👤 Opening chat with:", normalizedUser);
 
     setSelectedUser(normalizedUser);
     localStorage.setItem("selectedUser", JSON.stringify(normalizedUser));
@@ -171,16 +186,24 @@ export default function ChatLanding() {
     localStorage.removeItem("showChatbot");
   };
 
+  // ✅ NEW: Function to go back to sidebar (for mobile)
+  const handleBackToSidebar = () => {
+    setSelectedUser(null);
+    setShowChatbot(false);
+    localStorage.removeItem("selectedUser");
+    localStorage.removeItem("showChatbot");
+  };
+
   return (
-    <div className={`chat-container ${isDarkMode ? "dark-mode" : ""}`}>
-      {/* LEFT PANEL */}
+    <div className={`chat-container ${isDarkMode ? "dark-mode" : ""} ${(selectedUser || showChatbot) ? "chat-active" : ""}`}>
+      {/* LEFT SIDEBAR */}
       <div className="chat-sidebar">
         <div className="sidebar-header">
           <div className="header-top">
             <div className="user-info-section">
               <AiOutlineArrowLeft
                 className="back-arrow"
-                style={{ fontSize: "28px" }}
+                style={{ fontSize: "28px", cursor: "pointer" }}
                 onClick={() => {
                   localStorage.removeItem("selectedUser");
                   localStorage.removeItem("showChatbot");
@@ -189,18 +212,34 @@ export default function ChatLanding() {
                 title="Back to Feed"
               />
               <div className="current-user-info">
-                <img
-                  src={
-                    profilePic
-                      ? `http://localhost:3000${profilePic}`
-                      : user?.imageUrl || "https://dummyimage.com/40/007bff/ffffff&text=U"
-                  }
-                  alt="Profile"
-                  className="user-avatar"
-                  onError={(e) => {
-                    e.target.src = "https://dummyimage.com/40/007bff/ffffff&text=U";
+                {profilePic ? (
+                  <img
+                    src={`http://localhost:3000${profilePic}`}
+                    alt="Profile"
+                    className="user-avatar"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div 
+                  className="user-avatar-fallback"
+                  style={{
+                    display: profilePic ? 'none' : 'flex',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontWeight: '600',
+                    fontSize: '16px'
                   }}
-                />
+                >
+                  {getInitials(username || user?.username)}
+                </div>
                 <div className="user-details">
                   <div className="username">{username || user?.username || "Loading..."}</div>
                   <div className="user-status">Active now</div>
@@ -219,7 +258,6 @@ export default function ChatLanding() {
             </div>
           </div>
 
-          {/* Search + AI toggle */}
           <div className="search-container">
             <div className="search-input-wrapper">
               <div
@@ -243,7 +281,6 @@ export default function ChatLanding() {
               )}
             </div>
 
-            {/* SEARCH RESULTS DROPDOWN */}
             {searchQuery.trim() && searchResults.length > 0 && (
               <div className="search-results-dropdown">
                 <div className="search-results-header">
@@ -255,18 +292,35 @@ export default function ChatLanding() {
                     className="search-result-item"
                     onClick={() => openChatWithUser(user)}
                   >
-                    <img
-                      src={
-                        user.profilePicture
-                          ? `http://localhost:3000${user.profilePicture}`
-                          : "https://dummyimage.com/32/007bff/ffffff&text=U"
-                      }
-                      alt={user.username}
-                      className="result-avatar"
-                      onError={(e) => {
-                        e.target.src = "https://dummyimage.com/32/007bff/ffffff&text=U";
+                    {user.profilePicture ? (
+                      <img
+                        src={`http://localhost:3000${user.profilePicture}`}
+                        alt={user.username}
+                        className="result-avatar"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="result-avatar-fallback"
+                      style={{
+                        display: user.profilePicture ? 'none' : 'flex',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        flexShrink: 0
                       }}
-                    />
+                    >
+                      {getInitials(user.username)}
+                    </div>
                     <div className="result-info">
                       <div className="result-username">{user.username}</div>
                       <div className="result-email">{user.email || "User"}</div>
@@ -276,7 +330,6 @@ export default function ChatLanding() {
               </div>
             )}
 
-            {/* NO RESULTS MESSAGE */}
             {searchQuery.trim() && searchResults.length === 0 && (
               <div className="search-results-dropdown">
                 <div className="search-no-results">
@@ -287,41 +340,61 @@ export default function ChatLanding() {
           </div>
         </div>
 
-        {/* Recent Chats */}
         <div className="sidebar-content">
           <div className="recent-chats-section">
             <h3 className="section-title">Recent Chats</h3>
             <div className="chats-list">
               {recentChats.length > 0 ? (
-                recentChats.map((chatUser, index) => (
-                  <div
-                    key={chatUser.userId || index}
-                    className={`chat-item ${selectedUser?.userId === chatUser.userId ? "active" : ""}`}
-                    onClick={() => openChatWithUser(chatUser)}
-                  >
-                    <img
-                      src={
-                        chatUser.profilePicture
-                          ? `http://localhost:3000${chatUser.profilePicture}`
-                          : "https://dummyimage.com/36/007bff/ffffff&text=U"
-                      }
-                      alt={chatUser.username}
-                      className="chat-avatar"
-                      onError={(e) => {
-                        e.target.src = "https://dummyimage.com/36/007bff/ffffff&text=U";
-                      }}
-                    />
-                    <div className="chat-info">
-                      <div className="chat-username">{chatUser.username}</div>
-                      <div className="chat-preview">
-                        {chatUser.messages?.[chatUser.messages.length - 1]?.content || "Click to start chatting"}
+                recentChats.map((chatUser, index) => {
+                  if (!chatUser.username || chatUser.username.trim() === '') return null;
+                  
+                  return (
+                    <div
+                      key={chatUser.userId || index}
+                      className={`chat-item ${selectedUser?.userId === chatUser.userId ? "active" : ""}`}
+                      onClick={() => openChatWithUser(chatUser)}
+                    >
+                      {chatUser.profilePicture ? (
+                        <img
+                          src={`http://localhost:3000${chatUser.profilePicture}`}
+                          alt={chatUser.username}
+                          className="chat-avatar"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className="chat-avatar-fallback"
+                        style={{
+                          display: chatUser.profilePicture ? 'none' : 'flex',
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: '600',
+                          fontSize: '14px',
+                          flexShrink: 0
+                        }}
+                      >
+                        {getInitials(chatUser.username)}
+                      </div>
+                      <div className="chat-info">
+                        <div className="chat-username">{chatUser.username}</div>
+                        <div className="chat-preview">
+                          {chatUser.messages?.[chatUser.messages.length - 1]?.content || "Click to chat"}
+                        </div>
+                      </div>
+                      <div className="chat-time">
+                        <div className="online-indicator"></div>
                       </div>
                     </div>
-                    <div className="chat-time">
-                      <div className="online-indicator"></div>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="empty-state">
                   <div className="empty-icon">💬</div>
@@ -369,51 +442,17 @@ export default function ChatLanding() {
         )}
 
         {showChatbot && (
-          <div className="chat-window">
-            <div className="chat-header">
-              <div className="chat-header-info">
-                <div className="chat-header-avatar">🤖</div>
-                <div className="chat-header-details">
-                  <h3>AI Assistant</h3>
-                  <span className="chat-status">Always online</span>
-                </div>
-              </div>
-            </div>
-            <ChatbotPage isDarkMode={isDarkMode} />
-          </div>
+          <ChatbotPage isDarkMode={isDarkMode} onBack={handleBackToSidebar} />
         )}
 
         {selectedUser && (
-          <div className="chat-window">
-            <div className="chat-header">
-              <div className="chat-header-info">
-                <img
-                  src={
-                    selectedUser.profilePicture
-                      ? `http://localhost:3000${selectedUser.profilePicture}`
-                      : `https://dummyimage.com/40/007bff/ffffff&text=${
-                          selectedUser.username ? selectedUser.username.charAt(0).toUpperCase() : "U"
-                        }`
-                  }
-                  alt={selectedUser.username}
-                  className="chat-header-avatar"
-                  onError={(e) => {
-                    const firstLetter = selectedUser.username ? selectedUser.username.charAt(0).toUpperCase() : "U";
-                    e.target.src = `https://dummyimage.com/40/007bff/ffffff&text=${firstLetter}`;
-                  }}
-                />
-                <div className="chat-header-details">
-                  <h3>{selectedUser.username}</h3>
-                  <span className="chat-status">Active now</span>
-                </div>
-              </div>
-            </div>
-            <ChatUser
-              receiverId={selectedUser.userId}
-              receiverUsername={selectedUser.username}
-              isDarkMode={isDarkMode}
-            />
-          </div>
+          <ChatUser
+            receiverId={selectedUser.userId}
+            receiverUsername={selectedUser.username}
+            receiverProfilePic={selectedUser.profilePicture}
+            isDarkMode={isDarkMode}
+            onBack={handleBackToSidebar}
+          />
         )}
       </div>
     </div>

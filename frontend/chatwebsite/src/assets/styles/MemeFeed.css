@@ -1,21 +1,239 @@
+/* ✅ Feed container - Fixed height with internal scroll */
+.feed {
+  background: linear-gradient(180deg, #f5f5f5, #ffffff);
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  padding-left: 100px;
+  transition: background 0.4s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.feed.dark-mode {
+  background: linear-gradient(180deg, #575555, #050505);
+}
+
+.feed::-webkit-scrollbar {
+  width: 8px;
+}
+
+.feed::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.feed::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.feed::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.feed.dark-mode::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.feed.dark-mode::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 .my-masonry-grid {
   display: flex;
-  margin-left: -15px; /* gutter size offset */
+  margin-left: -15px;
   width: auto;
 }
+
 .my-masonry-grid_column {
-  padding-left: 15px; /* gutter size */
+  padding-left: 15px;
   background-clip: padding-box;
 }
 
-/* Optional for spacing between cards */
 .my-masonry-grid_column > div {
   margin-bottom: 15px;
 }
-.feed {
-background: linear-gradient(180deg, #575555, #050505); /* dark purple gradient */
-  margin: 0;
-  font-family: 'Poppins', sans-serif;
-  min-height: 100vh;
 
+.refreshing-indicator {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 12px 28px;
+  border-radius: 25px;
+  z-index: 9999;
+  animation: fadeInDown 0.3s ease;
+  font-weight: 500;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.feed.dark-mode .refreshing-indicator {
+  background: rgba(255, 255, 255, 0.9);
+  color: #000;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+}
+
+@keyframes fadeInDown {
+  from { 
+    opacity: 0; 
+    transform: translateX(-50%) translateY(-20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(-50%) translateY(0); 
+  }
+}
+
+.loading-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: linear-gradient(180deg, #f5f5f5, #ffffff);
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  z-index: 10000;
+}
+
+body.dark-mode .loading-screen {
+  background: linear-gradient(180deg, #575555, #050505);
+  color: #fff;
+}
+
+.auth-required {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: linear-gradient(180deg, #f5f5f5, #ffffff);
+  font-size: 20px;
+  color: #666;
+  z-index: 10000;
+}
+
+body.dark-mode .auth-required {
+  background: linear-gradient(180deg, #575555, #050505);
+  color: #ccc;
+}
+
+.loader {
+  text-align: center;
+  padding: 20px;
+  font-size: 18px;
+  color: #666;
+ font-weight: 500;
+}
+
+.feed.dark-mode .loader {
+  color: #aaa;
+}
+
+.end-message {
+  text-align: center;
+  padding: 30px;
+  font-size: 20px;
+  color: #999;
+  font-weight: 500;
+}
+
+.feed.dark-mode .end-message {
+  color: #777;
+}
+
+.feed.blur {
+  filter: blur(5px);
+  pointer-events: none;
+}
+
+.shared-memes-feed {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 300px;
+  max-height: 500px;
+  overflow-y: auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 15px;
+  z-index: 100;
+}
+
+.feed.dark-mode ~ .shared-memes-feed {
+  background: #1a1a1a;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+}
+
+.shared-memes-feed h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.feed.dark-mode ~ .shared-memes-feed h3 {
+  color: #fff;
+}
+
+.shared-memes-feed::-webkit-scrollbar {
+  width: 6px;
+}
+
+.shared-memes-feed::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+  .feed {
+    padding: 15px 10px;
+    padding-left: 10px;
+    padding-bottom: 80px;
+  }
+
+  .my-masonry-grid {
+    margin-left: -10px;
+  }
+
+  .my-masonry-grid_column {
+    padding-left: 10px;
+  }
+
+  .my-masonry-grid_column > div {
+    margin-bottom: 10px;
+  }
+
+  .shared-memes-feed {
+    width: 250px;
+    top: 60px;
+    right: 10px;
+  }
+
+  .refreshing-indicator {
+    top: 60px;
+    font-size: 14px;
+    padding: 10px 20px;
+  }
+}
+
+body {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
 }

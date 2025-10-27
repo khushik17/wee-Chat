@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
 import { ArrowLeft, Send, Bot, User, Loader } from "lucide-react";
 import "../styles/Ai.css";
 
@@ -15,13 +16,21 @@ function Chatbot({ isDarkMode }) {
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const { getToken } = useAuth(); // ✅ Clerk authentication hook
 
-  const CHAT_STORAGE_KEY = "chatbotMessages"; // Key for localStorage
+  const CHAT_STORAGE_KEY = "chatbotMessages";
 
   // Load chat history on mount
   useEffect(() => {
     const savedHistory = localStorage.getItem(CHAT_STORAGE_KEY);
-    if (savedHistory) setChatHistory(JSON.parse(savedHistory));
+    if (savedHistory) {
+      try {
+        setChatHistory(JSON.parse(savedHistory));
+      } catch (error) {
+        console.error("Error loading chat history:", error);
+        localStorage.removeItem(CHAT_STORAGE_KEY);
+      }
+    }
 
     inputRef.current?.focus();
   }, []);
@@ -33,7 +42,9 @@ function Chatbot({ isDarkMode }) {
 
   // Save chatHistory to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatHistory));
+    if (chatHistory.length > 0) {
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatHistory));
+    }
   }, [chatHistory]);
 
   const handleChat = async (e) => {
@@ -46,42 +57,65 @@ function Chatbot({ isDarkMode }) {
     setIsLoading(true);
 
     try {
+      // ✅ Get Clerk token dynamically
+      const token = await getToken();
+      
+      if (!token) {
+        throw new Error("Authentication token not found. Please login again.");
+      }
+
       const res = await axios.post(
         "http://localhost:3000/chat",
-        { message },
+        { message: userMsg.content },
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         }
       );
 
       const botMsg = {
         role: "ai",
-        content: res.data.reply,
+        content: res.data.reply || "No response received",
         timestamp: new Date(),
       };
       setChatHistory((prev) => [...prev, botMsg]);
     } catch (error) {
-      console.error(error);
+      console.error("Chat error:", error?.response?.data || error.message);
+      
+      let errorMessage = "Error occurred.";
+      
+      if (error.response) {
+        // Server responded with error
+        errorMessage = error.response.data?.error || `Server error: ${error.response.status}`;
+      } else if (error.message.includes("Authentication")) {
+        errorMessage = "Please login again to continue chatting.";
+      } else if (error.message.includes("Network")) {
+        errorMessage = "Network error. Please check your connection.";
+      }
+      
       setChatHistory((prev) => [
         ...prev,
-        { role: "ai", content: "Error occurred.", timestamp: new Date() },
+        { role: "ai", content: errorMessage, timestamp: new Date() },
       ]);
     } finally {
       setIsLoading(false);
+      inputRef.current?.focus();
     }
   };
 
   const toggleDarkMode = () => {
     const newMode = !isDarkMode;
     localStorage.setItem("darkMode", newMode.toString());
-    window.location.reload(); // Reload to sync parent and this component
+    window.location.reload();
   };
 
   const clearChat = () => {
-    setChatHistory([]);
-    localStorage.removeItem(CHAT_STORAGE_KEY);
+    if (window.confirm("Are you sure you want to clear all chat history?")) {
+      setChatHistory([]);
+      localStorage.removeItem(CHAT_STORAGE_KEY);
+    }
   };
 
   return (

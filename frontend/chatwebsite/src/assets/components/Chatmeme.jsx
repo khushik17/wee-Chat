@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { FaRegComment, FaShare } from "react-icons/fa";
 import { useUser } from "@clerk/clerk-react";
@@ -8,58 +8,69 @@ import "../styles/Chatmeme.css";
 export default function MemeCard({ meme, onShare, onComment, onLikeToggle }) {
   const { user } = useUser();
   const [showHeart, setShowHeart] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // ✅ Use meme prop directly
+  // ✅ Listen for theme changes
+  useEffect(() => {
+    const savedMode = localStorage.getItem("darkMode") === "true";
+    setIsDarkMode(savedMode);
+
+    const handleThemeChange = (e) => {
+      setIsDarkMode(e.detail.isDarkMode);
+    };
+
+    window.addEventListener("themeChange", handleThemeChange);
+    return () => window.removeEventListener("themeChange", handleThemeChange);
+  }, []);
+
   const likes = meme.like?.length || 0;
   const liked = user && Array.isArray(meme.like) 
-    ? meme.like.some((uid) => uid?.toString() === user.id)
+    ? meme.like.some((uid) => uid?.toString() === user.id?.toString())
     : false;
 
-  // ❤ Handle double-click with animation
+  // ✅ Double-click to like with heart animation
   const handleDoubleClick = async (e) => {
     e.preventDefault();
-    console.log("🔥 Double click detected!");
-  console.log("User:", user);
-  console.log("Liked:", liked);
-
+    
     if (!user) {
       alert("Please sign in to like memes!");
       return;
     }
 
-    // Show animation only when liking (not unliking)
     if (!liked) {
-      console.log("❤️ Setting showHeart to TRUE");
+      // Show heart animation only when liking
       setShowHeart(true);
       setTimeout(() => setShowHeart(false), 800);
     }
 
-    // Call parent's like toggle
     if (onLikeToggle) {
       await onLikeToggle(meme._id);
     }
   };
 
-  // 🔘 Handle button click (no animation)
+  // ✅ Button click to toggle like with heart animation
   const handleButtonClick = async () => {
     if (!user) {
       alert("Please sign in to like memes!");
       return;
     }
 
-    // Just toggle, no animation
+    // ✅ Show heart animation when liking via button
+    if (!liked) {
+      setShowHeart(true);
+      setTimeout(() => setShowHeart(false), 800);
+    }
+
     if (onLikeToggle) {
       await onLikeToggle(meme._id);
     }
   };
 
   return (
-    <div className="meme-card-container">
-      {/* ✅ Double-click for animation */}
+    <div className={`meme-card-container ${isDarkMode ? "dark-mode" : ""}`}>
       <div 
         className="meme-image-wrapper" 
         onDoubleClick={handleDoubleClick}
-        style={{ position: "relative" }}
       >
         <img 
           src={meme.imageUrl} 
@@ -68,7 +79,7 @@ export default function MemeCard({ meme, onShare, onComment, onLikeToggle }) {
           draggable="false"
         />
 
-        {/* ❤ Popup Heart Animation */}
+        {/* ✅ Heart animation on like */}
         <AnimatePresence>
           {showHeart && (
             <motion.div
@@ -85,7 +96,6 @@ export default function MemeCard({ meme, onShare, onComment, onLikeToggle }) {
       </div>
 
       <div className="meme-action-bar">
-        {/* ✅ Button click without animation */}
         <button 
           onClick={handleButtonClick}
           className="like-button" 
@@ -112,7 +122,6 @@ export default function MemeCard({ meme, onShare, onComment, onLikeToggle }) {
         {likes} {likes === 1 ? "like" : "likes"}
       </p>
 
-      {/* ✅ Show last 2 comments */}
       {meme.comments && meme.comments.length > 0 && (
         <div className="meme-top-comments">
           {meme.comments.slice(-2).map((c, i) => (

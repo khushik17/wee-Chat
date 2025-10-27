@@ -1,0 +1,231 @@
+/* ✅ VERTICAL SIDEBAR */
+.vertical-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 80px;
+  height: 100vh;
+  background: #fff;
+  border-right: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px 0; /* ✅ Reduced top padding */
+  z-index: 1000;
+  transition: background 0.3s ease;
+}
+
+.vertical-sidebar.dark {
+  background: #1a1a1a;
+  border-right: 1px solid #333;
+}
+
+/* ✅ Logo spacer - Reduced height */
+.sidebar-logo-spacer {
+  height: 40px; /* ✅ Changed from 60px to 40px */
+  width: 100%;
+}
+
+/* ✅ Navigation Links - Moved up */
+.sidebar-links {
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* ✅ Reduced gap from 25px to 20px */
+  margin-top: 10px; /* ✅ Reduced margin from 20px to 10px */
+  flex: 1;
+}
+
+.sidebar-link {
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.vertical-sidebar.dark .sidebar-link {
+  color: #fff;
+}
+
+.sidebar-link:hover {
+  background: #f0f0f0;
+  transform: scale(1.05);
+}
+
+.vertical-sidebar.dark .sidebar-link:hover {
+  background: #2a2a2a;
+}
+
+.sidebar-link:active {
+  transform: scale(0.95);
+}
+
+/* ✅ User Profile Section - At Bottom */
+.sidebar-user {
+  margin-top: auto;
+  padding-bottom: 20px;
+}
+
+.user-profile-wrapper {
+  position: relative;
+}
+
+.sidebar-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #e0e0e0;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.sidebar-user-avatar:hover {
+  transform: scale(1.1);
+  border-color: #f44336;
+}
+
+.vertical-sidebar.dark .sidebar-user-avatar {
+  border-color: #333;
+}
+
+.vertical-sidebar.dark .sidebar-user-avatar:hover {
+  border-color: #f44336;
+}
+
+/* User Dropdown Menu */
+.sidebar-user-menu {
+  position: absolute;
+  bottom: 50px;
+  left: 70px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px 0;
+  min-width: 150px;
+  z-index: 1001;
+}
+
+.vertical-sidebar.dark .sidebar-user-menu {
+  background: #2a2a2a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 14px;
+  color: #333;
+}
+
+.vertical-sidebar.dark .menu-item {
+  color: #fff;
+}
+
+.menu-item:hover {
+  background: #f5f5f5;
+}
+
+.vertical-sidebar.dark .menu-item:hover {
+  background: #333;
+}
+
+.menu-item.logout {
+  color: #f44336;
+  border-top: 1px solid #eee;
+}
+
+.vertical-sidebar.dark .menu-item.logout {
+  border-top: 1px solid #333;
+}
+
+.menu-item.logout:hover {
+  background: #ffebee;
+}
+
+.vertical-sidebar.dark .menu-item.logout:hover {
+  background: #2a1a1a;
+}
+
+/* ✅ MOBILE BOTTOM NAV */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 65px;
+  background: #fff;
+  border-top: 1px solid #e0e0e0;
+  z-index: 1000;
+  padding: 8px 0;
+}
+
+.mobile-bottom-nav.dark {
+  background: #1a1a1a;
+  border-top: 1px solid #333;
+}
+
+.mobile-bottom-nav {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.mobile-nav-item {
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  font-size: 11px;
+}
+
+.mobile-bottom-nav.dark .mobile-nav-item {
+  color: #fff;
+}
+
+.mobile-nav-item:hover {
+  background: #f0f0f0;
+}
+
+.mobile-bottom-nav.dark .mobile-nav-item:hover {
+  background: #2a2a2a;
+}
+
+.mobile-nav-item:active {
+  transform: scale(0.95);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .vertical-sidebar {
+    display: none;
+  }
+
+  .mobile-bottom-nav {
+    display: flex;
+  }
+}
+
+/* Hide mobile nav on desktop */
+@media (min-width: 769px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}

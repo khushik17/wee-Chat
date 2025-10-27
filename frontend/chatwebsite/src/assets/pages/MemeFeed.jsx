@@ -5,6 +5,7 @@ import Masonry from "react-masonry-css";
 import MemeCard from "../components/Chatmeme";
 import ShareModal from "../components/Sharemodel";
 import CommentModal from "../components/CommentModal";
+import Navbar from "../components/Navbar";
 import socket from "../../socket";
 import { useUser, useAuth } from "@clerk/clerk-react";
 
@@ -21,6 +22,8 @@ export default function MemeFeed() {
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [commentMeme, setCommentMeme] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const seen = useRef(new Set());
   const breakpointColumnsObj = { default: 3, 1100: 2, 700: 1 };
@@ -34,17 +37,38 @@ export default function MemeFeed() {
     socket.on("receive_meme", (memeMessage) =>
       setChatMessages((prev) => [memeMessage, ...prev])
     );
+    
     return () => socket.off("receive_meme");
   }, [isLoaded, user]);
 
-  // Helper function to get axios config with Clerk session token
+  // ✅ Listen for theme changes
+  useEffect(() => {
+    const savedMode = localStorage.getItem("darkMode") === "true";
+    setIsDarkMode(savedMode);
+
+    const handleThemeChange = (e) => {
+      setIsDarkMode(e.detail.isDarkMode);
+    };
+
+    window.addEventListener("themeChange", handleThemeChange);
+    return () => window.removeEventListener("themeChange", handleThemeChange);
+  }, []);
+
+  // ✅ Listen for refresh event from Navbar
+  useEffect(() => {
+    const handleRefresh = async () => {
+      await refreshAllMemes();
+    };
+
+    window.addEventListener("refreshMemes", handleRefresh);
+    return () => window.removeEventListener("refreshMemes", handleRefresh);
+  }, []);
+
   const getAuthConfig = async () => {
     const token = await getToken();
     return {
-      headers: { 
-        Authorization: `Bearer ${token}`,
-      },
-      withCredentials: true // Important for Clerk session cookies
+      headers: { Authorization: `Bearer ${token}` },
+      withCredentials: true,
     };
   };
 
@@ -59,7 +83,7 @@ export default function MemeFeed() {
 
       const res = await axios.get(url, config);
       const fresh = res.data.memes.filter((m) => !seen.current.has(m._id));
-      
+
       if (fresh.length === 0) return setHasMore(false);
 
       fresh.forEach((m) => seen.current.add(m._id));
@@ -72,50 +96,96 @@ export default function MemeFeed() {
     }
   };
 
+  // ✅ Refresh all memes function
+  const refreshAllMemes = async () => {
+    if (isRefreshing || !isLoaded || !user) return;
+
+    setIsRefreshing(true);
+    try {
+      const config = await getAuthConfig();
+      
+      await axios.get("http://localhost:3000/refreshMemes", config);
+
+      seen.current.clear();
+      setMemes([]);
+      setHasMore(true);
+
+      const res = await axios.get("http://localhost:3000/memes?limit=6", config);
+      const fresh = res.data.memes;
+
+      fresh.forEach((m) => seen.current.add(m._id));
+      setMemes(fresh);
+
+      console.log("✅ Memes refreshed successfully!");
+    } catch (err) {
+      console.error("Failed to refresh memes:", err);
+      alert("Failed to refresh memes. Please try again.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const handleLikeToggle = async (memeId) => {
     if (!isLoaded || !user) return;
 
     const meme = memes.find((m) => m._id === memeId);
-    const hasLiked = meme?.like?.some((uid) => uid === user.id);
+    if (!meme) return;
 
-    // Optimistic update
+    const hasLiked = Array.isArray(meme.like)
+      ? meme.like.some((uid) => {
+          const uidStr = uid?.toString();
+          const userIdStr = user.id?.toString();
+          return uidStr === userIdStr;
+        })
+      : false;
+
     setMemes((prev) =>
       prev.map((m) => {
         if (m._id === memeId) {
           const updatedLikes = hasLiked
-            ? m.like.filter((uid) => uid !== user.id)
+            ? m.like.filter((uid) => uid?.toString() !== user.id?.toString())
             : [...(m.like || []), user.id];
+          
           return { ...m, like: updatedLikes };
         }
         return m;
       })
     );
 
-    // API call
     try {
       const config = await getAuthConfig();
       const endpoint = hasLiked ? "/unlike" : "/like";
-      await axios.post(`http://localhost:3000${endpoint}`, { id: memeId }, config);
+      
+      await axios.post(
+        `http://localhost:3000${endpoint}`,
+        { id: memeId },
+        config
+      );
+
     } catch (err) {
-      console.error("Like toggle failed:", err);
-      // Revert optimistic update
+      console.error("❌ Like toggle failed:", err);
+      
       setMemes((prev) =>
         prev.map((m) => {
           if (m._id === memeId) {
             const revertedLikes = hasLiked
               ? [...(m.like || []), user.id]
-              : m.like.filter((uid) => uid !== user.id);
+              : m.like.filter((uid) => uid?.toString() !== user.id?.toString());
+            
             return { ...m, like: revertedLikes };
           }
           return m;
         })
       );
+      
+      alert("Failed to update like. Please try again.");
     }
   };
 
+  // ✅ Remove alert from handleSend
   const handleSend = async (receiverId) => {
     if (!isLoaded || !user || !modalMeme?._id || !receiverId) {
-      return alert("Meme or receiver missing!");
+      return;
     }
 
     try {
@@ -126,19 +196,18 @@ export default function MemeFeed() {
         config
       );
 
-      // Emit socket event
       socket.emit("send_meme", {
         senderId: user.id,
         receiverId,
         meme: modalMeme,
       });
 
-      alert("Meme sent successfully! 🚀");
+      // ✅ No alert - silent send
       setShareModalOpen(false);
       setModalMeme(null);
     } catch (err) {
       console.error("Send meme error:", err);
-      alert(err.response?.data?.error || "Failed to send meme");
+      alert("Failed to send meme. Please try again.");
     }
   };
 
@@ -152,13 +221,27 @@ export default function MemeFeed() {
 
   return (
     <>
-      <div className={`feed ${shareModalOpen || commentModalOpen ? "blur" : ""}`}>
+      <Navbar />
+
+      <div
+        id="scrollable-feed"
+        className={`feed ${isDarkMode ? "dark-mode" : ""} ${
+          shareModalOpen || commentModalOpen ? "blur" : ""
+        }`}
+      >
+        {isRefreshing && (
+          <div className="refreshing-indicator">
+            <p>🔄 Refreshing memes...</p>
+          </div>
+        )}
+
         <InfiniteScroll
           dataLength={memes.length}
           next={fetchMemes}
           hasMore={hasMore}
           loader={<p className="loader">Loading more memes...</p>}
           endMessage={<p className="end-message">No more memes 🤧</p>}
+          scrollableTarget="scrollable-feed"
         >
           <Masonry
             breakpointCols={breakpointColumnsObj}
@@ -211,13 +294,15 @@ export default function MemeFeed() {
             setCommentModalOpen(false);
             setCommentMeme(null);
           }}
-          onComment={(newComments) =>
+          onComment={(newComments) => {
             setMemes((prev) =>
               prev.map((m) =>
-                m._id === commentMeme._id ? { ...m, comments: newComments } : m
+                m._id === commentMeme._id
+                  ? { ...m, comments: newComments }
+                  : m
               )
-            )
-          }
+            );
+          }}
         />
       )}
     </>
