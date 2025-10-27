@@ -3,5 +3,5 @@ node_modules/
 
 backend/.env
 
-
+uploads/
 frontend/chatwebsite/.env
