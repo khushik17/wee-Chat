@@ -18,12 +18,13 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 
-// ✅ FIXED: Dynamic CORS for deployment
+// ✅ CORRECT - Direct URL add karo
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
+  'https://wee-chat.vercel.app',
   process.env.FRONTEND_URL
-].filter(Boolean);
+].filter(origin => origin && origin !== 'undefined');
 
 app.use(cors({ 
   origin: function(origin, callback) {
