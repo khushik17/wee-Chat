@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
-import { Sun, Moon, MessageCircle, Home, User, LogOut } from "lucide-react";
+import { Sun, Moon, MessageCircle, Home, User } from "lucide-react"; // ✅ LogOut remove
 import "../styles/Navbar.css";
 
 export default function Navbar() {
@@ -10,7 +10,6 @@ export default function Navbar() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  // Load dark mode preference
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode") === "true";
     setIsDarkMode(savedMode);
@@ -22,34 +21,24 @@ export default function Navbar() {
     setIsDarkMode(newMode);
     localStorage.setItem("darkMode", newMode.toString());
     document.body.classList.toggle("dark-mode", newMode);
-    
-    // ✅ Trigger event for meme cards AND memefeed background
     window.dispatchEvent(new CustomEvent("themeChange", { detail: { isDarkMode: newMode } }));
   };
 
-  // ✅ Refresh memes function
   const handleRefreshMemes = () => {
     window.dispatchEvent(new CustomEvent("refreshMemes"));
     navigate("/memeFeed");
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = "/sign-in";
-  };
+  // ✅ handleLogout function removed completely
 
   if (!isLoaded) return null;
 
   return (
     <>
-      {/* ✅ VERTICAL SIDEBAR - NO LOGO */}
       <nav className={`vertical-sidebar ${isDarkMode ? "dark" : ""}`}>
-        {/* ✅ NO LOGO - Empty div for spacing */}
         <div className="sidebar-logo-spacer"></div>
 
-        {/* Navigation Links */}
         <div className="sidebar-links">
-          {/* ✅ Home button with refresh functionality */}
           <button 
             className="sidebar-link"
             onClick={handleRefreshMemes}
@@ -75,7 +64,6 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* User Profile */}
         <div className="sidebar-user">
           {user && (
             <div className="user-profile-wrapper">
@@ -86,17 +74,14 @@ export default function Navbar() {
                 onClick={() => setShowUserMenu(!showUserMenu)}
               />
               
-              {/* User Dropdown */}
+              {/* ✅ User Dropdown - Only Profile option */}
               {showUserMenu && (
                 <div className="sidebar-user-menu">
                   <div className="menu-item" onClick={() => { navigate("/profile"); setShowUserMenu(false); }}>
                     <User size={16} />
                     <span>Profile</span>
                   </div>
-                  <div className="menu-item logout" onClick={handleLogout}>
-                    <LogOut size={16} />
-                    <span>Logout</span>
-                  </div>
+                  {/* ✅ Logout option REMOVED */}
                 </div>
               )}
             </div>
@@ -104,7 +89,6 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* ✅ MOBILE BOTTOM NAV */}
       <div className={`mobile-bottom-nav ${isDarkMode ? "dark" : ""}`}>
         <button 
           className="mobile-nav-item"
