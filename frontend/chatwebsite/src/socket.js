@@ -13,6 +13,7 @@ const socket = io(SOCKET_URL, {
 // Debug ke liye
 socket.on('connect', () => {
   console.log('✅ Socket connected:', socket.id);
+  console.log("🔌 Connecting to:", SOCKET_URL);
 });
 
 socket.on('connect_error', (error) => {
