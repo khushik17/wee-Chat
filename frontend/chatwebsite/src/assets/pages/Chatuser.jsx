@@ -2,13 +2,13 @@ import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import io from "socket.io-client";
-import { Send, Phone, Video, MoreVertical, Sun, Moon } from "lucide-react";
+import { Send, Phone, Video, MoreVertical, Sun, Moon, ArrowLeft } from "lucide-react";
 import "../styles/Chatuser.css";
 import API_URL from "../../config/api";
 
 const socket = io(API_URL);
 
-export default function ChatUser({ receiverId, receiverUsername, receiverProfilePic, isDarkMode: parentDarkMode }) {
+export default function ChatUser({ receiverId, receiverUsername, receiverProfilePic, isDarkMode: parentDarkMode, onBack }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -179,6 +179,13 @@ export default function ChatUser({ receiverId, receiverUsername, receiverProfile
     <div className={`chatuser-container ${isDarkMode ? "dark-mode" : ""}`}>
       <div className="chatuser-header">
         <div className="friend-info">
+          <button 
+            className="back-arrow-btn" 
+            onClick={onBack}
+            title="Back to chats"
+          >
+            <ArrowLeft size={24} />
+          </button>
           <div className="friend-avatar">
             <div className="avatar-circle">
               <span>{getInitials(receiverUsername)}</span>

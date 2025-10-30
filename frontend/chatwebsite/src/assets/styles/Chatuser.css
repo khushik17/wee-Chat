@@ -48,6 +48,35 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
+/* Back Arrow Button */
+.chatuser-container .back-arrow-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #050505;
+  cursor: pointer;
+  padding: 8px;
+  margin-right: 12px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.chatuser-container .back-arrow-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: scale(1.1);
+}
+
+.chatuser-container.dark-mode .back-arrow-btn {
+  color: #e4e6ea;
+}
+
+.chatuser-container.dark-mode .back-arrow-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 .chatuser-container .friend-info {
   display: flex;
   align-items: center;
@@ -161,6 +190,25 @@
 
 .chatuser-container.dark-mode .action-btn:hover {
   background: #3a3b3c;
+  color: #58a6ff;
+}
+
+/* Theme Button in Header */
+.chatuser-container .theme-btn {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.chatuser-container .theme-btn:hover {
+  background: rgba(102, 126, 234, 0.2);
+  color: #667eea;
+}
+
+.chatuser-container.dark-mode .theme-btn {
+  background: rgba(88, 166, 255, 0.1);
+}
+
+.chatuser-container.dark-mode .theme-btn:hover {
+  background: rgba(88, 166, 255, 0.2);
   color: #58a6ff;
 }
 
@@ -739,6 +787,11 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  /* Show back arrow on mobile */
+  .chatuser-container .back-arrow-btn {
+    display: flex;
+  }
+  
   .chatuser-container .chatuser-header {
     padding: 12px 16px;
   }
@@ -777,6 +830,11 @@
 }
 
 @media (max-width: 480px) {
+  .chatuser-container .back-arrow-btn {
+    padding: 6px;
+    margin-right: 8px;
+  }
+  
   .chatuser-container .avatar-circle {
     width: 36px;
     height: 36px;
@@ -809,22 +867,4 @@
 .chatuser-container * {
   box-sizing: border-box;
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-}
-/* Theme Button in Header */
-.chatuser-container .theme-btn {
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.chatuser-container .theme-btn:hover {
-  background: rgba(102, 126, 234, 0.2);
-  color: #667eea;
-}
-
-.chatuser-container.dark-mode .theme-btn {
-  background: rgba(88, 166, 255, 0.1);
-}
-
-.chatuser-container.dark-mode .theme-btn:hover {
-  background: rgba(88, 166, 255, 0.2);
-  color: #58a6ff;
 }
