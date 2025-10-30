@@ -35,7 +35,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     localStorage.clear();
-    window.location.href = "/login";
+    window.location.href = "/sign-in";
   };
 
   if (!isLoaded) return null;
